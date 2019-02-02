@@ -1,10 +1,16 @@
 const express = require("express");
-const { createReadStream } = require("fs");
+const { stat, createReadStream } = require("fs");
+const { promisify } = require("util");
 const video = "./ZED HIGHLIGHT.mp4";
 const app = express();
+const fileInfo = promisify(stat);
 
-app.get("/", (req, res) => {
-  res.writeHead(200, { "Content-Type": "video/mp4" });
+app.get("/", async (req, res) => {
+  const { size } = await fileInfo(video);
+  res.writeHead(200, {
+    "Content-Length": size,
+    "Content-Type": "video/mp4"
+  });
   createReadStream(video).pipe(res);
 });
 
