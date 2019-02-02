@@ -1,32 +1,48 @@
+const videoHandler = require("./videoHandler");
+const { createWriteStream } = require("fs");
+const multiparty = require("multiparty");
+const zedVideo = "./ZED HIGHLIGHT.mp4";
 const express = require("express");
-const { stat, createReadStream } = require("fs");
-const { promisify } = require("util");
-const video = "./ZED HIGHLIGHT.mp4";
 const app = express();
-const fileInfo = promisify(stat);
 
-app.get("/", async (req, res) => {
-  const { size } = await fileInfo(video);
-  const { range } = req.headers;
+app.get("/video", videoHandler);
 
-  if (range) {
-    let [start, end] = range.replace(/bytes=/g, "").split("-");
-    start = parseInt(start, 10);
-    end = end ? parseInt(end, 10) : size - 1;
-    res.writeHead(206, {
-      "Content-Range": `bytes ${start}-${end}/${size}`,
-      "Accept-Ranges": "bytes",
-      "Content-Length": end - start + 1,
-      "Content-Type": "video/mp4"
-    });
-    createReadStream(video, { start, end }).pipe(res);
-  } else {
-    res.writeHead(200, {
-      "Content-Length": size,
-      "Content-Type": "video/mp4"
-    });
-    createReadStream(video).pipe(res);
-  }
+app.post("/", (req, res) => {
+  const form = new multiparty.Form();
+  form.parse(req);
+  form.on("part", part => {
+    const name = part.name ? part.name : part.filename;
+    const upload = createWriteStream(`upload/${name}`);
+    part.pipe(upload);
+  });
+  form.on("close", () => {
+    res.write(`
+        <h1>Hello</h1>
+        <video id="videoPlayer" controls>
+            <source src="http://localhost:3000/video" type="video/mp4">
+        </video>
+    `);
+  });
+  res.writeHead(200, {
+    "Content-Type": "text/html"
+  });
+});
+
+app.get("/", (req, res) => {
+  res.writeHead(200, { "Content-Type": "text/html" });
+  res.end(`
+        <form enctype="multipart/form-data" method="POST" action="/">
+            First name:<br>
+            <input type="text" name="firstname">
+            <br>
+            Last name:<br>
+            <input type="text" name="lastname">
+            <br><br>
+            File:<br>
+            <input type="file" name="video"/>
+            <button >Upload</button>
+        </form>
+    `);
 });
 
 app.listen(3000, () => {
