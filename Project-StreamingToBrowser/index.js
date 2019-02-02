@@ -38,7 +38,7 @@ app.get("/", (req, res) => {
             Last name:<br>
             <input type="text" name="lastname">
             <br><br>
-            File:<br>
+            Video:<br>
             <input type="file" name="video"/>
             <button >Upload</button>
         </form>
